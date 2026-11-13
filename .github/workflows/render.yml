@@ -13,10 +13,10 @@ on:
         description: "Height in px"
         default: "720"
       start:
-        description: "Start second (for rendering in parts)"
+        description: "Start second"
         default: "0"
       end:
-        description: "End second (empty = full animation)"
+        description: "End second (empty = full)"
         default: ""
 
 jobs:
@@ -30,17 +30,23 @@ jobs:
         with:
           node-version: 20
 
+      - name: Find project file
+        run: |
+          P=$(find . -type f \( -name '*archf*.json' -o -name 'project.json' \) -not -path './node_modules/*' | head -1)
+          echo "Project file: $P"
+          test -n "$P"
+          echo "PROJECT_FILE=$P" >> "$GITHUB_ENV"
+
       - name: Install Playwright
         run: |
-          npm init -y
-          npm i playwright
+          npm install
           npx playwright install --with-deps chromium
 
       - name: Install ffmpeg
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Render frames and encode
-        run: node render.mjs
+        run: PROJECT="$PROJECT_FILE" node render.mjs
         env:
           FPS: ${{ inputs.fps }}
           WIDTH: ${{ inputs.width }}
@@ -48,7 +54,6 @@ jobs:
           START: ${{ inputs.start }}
           END: ${{ inputs.end }}
           APP_URL: https://3d4j.netlify.app
-          PROJECT: project/project.json
 
       - name: Upload video
         uses: actions/upload-artifact@v4
