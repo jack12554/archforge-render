@@ -1,0 +1,57 @@
+name: Render ArchForge animation
+
+on:
+  workflow_dispatch:
+    inputs:
+      fps:
+        description: "Frames per second"
+        default: "24"
+      width:
+        description: "Width in px"
+        default: "1280"
+      height:
+        description: "Height in px"
+        default: "720"
+      start:
+        description: "Start second (for rendering in parts)"
+        default: "0"
+      end:
+        description: "End second (empty = full animation)"
+        default: ""
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright
+        run: |
+          npm init -y
+          npm i playwright
+          npx playwright install --with-deps chromium
+
+      - name: Install ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Render frames and encode
+        run: node render.mjs
+        env:
+          FPS: ${{ inputs.fps }}
+          WIDTH: ${{ inputs.width }}
+          HEIGHT: ${{ inputs.height }}
+          START: ${{ inputs.start }}
+          END: ${{ inputs.end }}
+          APP_URL: https://3d4j.netlify.app
+          PROJECT: project/project.json
+
+      - name: Upload video
+        uses: actions/upload-artifact@v4
+        with:
+          name: animation
+          path: out/*.mp4
